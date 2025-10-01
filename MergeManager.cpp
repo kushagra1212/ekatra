@@ -1,5 +1,5 @@
 #include "MergeManager.h"
-#include <algorithm> 
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <string>
@@ -63,7 +63,51 @@ fs::path MergeManager::getDestinationForFile(const fs::path &file,
   if (it != categoryMap.end()) {
     return destBaseDir / it->second;
   }
-  return destBaseDir / "Other";
+
+  auto userIt = m_userRules.find(ext);
+  if (userIt != m_userRules.end()) {
+    return destBaseDir / userIt->second;
+  }
+
+  return fs::path();
+}
+
+fs::path MergeManager::handleUnknownFile(const fs::path &file,
+                                         const fs::path &destBaseDir) {
+  std::string ext = file.extension().string();
+  std::cout << "\n--------------------------------------------------"
+            << std::endl;
+  std::cout << "Uncategorized file type: '" << ext
+            << "' for file: " << file.filename().string() << std::endl;
+  std::cout << "Where should files of this type go?" << std::endl;
+  std::cout << "  1. Put in 'Other' folder" << std::endl;
+  std::cout << "  2. Create a new folder" << std::endl;
+  std::cout << "Enter your choice (1-2): ";
+
+  int choice = 0;
+  std::cin >> choice;
+
+  fs::path targetSubDir;
+
+  if (choice == 2) {
+    std::cout << "Enter new folder name (e.g., 'CAD_Files'): ";
+    std::string newDirName;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(),
+                    '\n'); // Safely clear buffer
+    std::getline(std::cin, newDirName);
+    targetSubDir = newDirName;
+  } else {
+    targetSubDir = "Other";
+  }
+
+  std::cout << "'" << ext << "' files will now be placed in '"
+            << targetSubDir.string() << "'." << std::endl;
+  std::cout << "--------------------------------------------------\n"
+            << std::endl;
+
+  // Save this new rule for the rest of the session
+  m_userRules[ext] = targetSubDir;
+  return destBaseDir / targetSubDir;
 }
 
 fs::path MergeManager::getUniquePath(const fs::path &targetPath) {
@@ -84,7 +128,7 @@ fs::path MergeManager::getUniquePath(const fs::path &targetPath) {
 
 void MergeManager::processDirectory(const fs::path &sourceDir,
                                     const fs::path &destBaseDir, Operation op,
-                                    bool verbose) {
+                                    bool verbose, bool skipDuplicates) {
   try {
     for (const auto &entry : fs::recursive_directory_iterator(sourceDir)) {
       if (!fs::is_regular_file(entry.status()))
@@ -95,9 +139,26 @@ void MergeManager::processDirectory(const fs::path &sourceDir,
       }
 
       fs::path targetDir = getDestinationForFile(entry.path(), destBaseDir);
+
+      if (targetDir.empty()) {
+        targetDir = handleUnknownFile(entry.path(), destBaseDir);
+      }
+
       fs::create_directories(targetDir);
 
-      fs::path destFile = getUniquePath(targetDir / entry.path().filename());
+      fs::path destFile;
+      if (skipDuplicates) {
+        destFile = targetDir / entry.path().filename();
+        if (fs::exists(destFile)) {
+          if (verbose) {
+            std::cout << "  -> Skipping (already exists): "
+                      << destFile.filename().string() << std::endl;
+          }
+          continue;
+        }
+      } else {
+        destFile = getUniquePath(targetDir / entry.path().filename());
+      }
 
       std::error_code ec;
       if (op == Operation::Copy) {
@@ -117,7 +178,8 @@ void MergeManager::processDirectory(const fs::path &sourceDir,
 }
 
 void MergeManager::process(const fs::path &sourceA, const fs::path &sourceB,
-                           const fs::path &dest, Operation op, bool verbose) {
+                           const fs::path &dest, Operation op, bool verbose,
+                           bool skipDuplicates) {
   if (!fs::exists(sourceA) || !fs::exists(sourceB)) {
     std::cerr << "Error: One or both source folders do not exist." << std::endl;
     return;
@@ -127,11 +189,11 @@ void MergeManager::process(const fs::path &sourceA, const fs::path &sourceB,
     fs::create_directories(dest);
     std::cout << "Starting merge for Folder A: " << sourceA.string()
               << std::endl;
-    processDirectory(sourceA, dest, op, verbose);
+    processDirectory(sourceA, dest, op, verbose, skipDuplicates);
 
     std::cout << "Starting merge for Folder B: " << sourceB.string()
               << std::endl;
-    processDirectory(sourceB, dest, op, verbose);
+    processDirectory(sourceB, dest, op, verbose, skipDuplicates);
 
     std::cout << "\n✅ Merge operation completed successfully!" << std::endl;
   } catch (const fs::filesystem_error &e) {

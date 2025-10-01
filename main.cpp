@@ -23,6 +23,12 @@ int main(int argc, char *argv[]) {
       .default_value(false)
       .implicit_value(true);
 
+  program.add_argument("-s", "--skip-duplicates")
+      .help("If a file with the same name already exists, skip it instead of "
+            "creating a renamed copy.")
+      .default_value(false)
+      .implicit_value(true);
+
   try {
     program.parse_args(argc, argv);
   } catch (const std::runtime_error &err) {
@@ -36,6 +42,7 @@ int main(int argc, char *argv[]) {
   fs::path dest = program.get<std::string>("destination");
   auto modeStr = program.get<std::string>("--mode");
   bool verbose = program.get<bool>("--verbose");
+  bool skipDuplicates = program.get<bool>("--skip-duplicates");
 
   MergeManager::Operation op = MergeManager::Operation::Copy;
   if (modeStr == "move") {
@@ -48,7 +55,7 @@ int main(int argc, char *argv[]) {
   }
 
   MergeManager manager;
-  manager.process(sourceA, sourceB, dest, op, verbose);
+  manager.process(sourceA, sourceB, dest, op, verbose, skipDuplicates);
 
   return 0;
 }
