@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/Users/kushagrarathore/code/per/Ekatra/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/kushagrarathore/code/per/Ekatra/include -std=gnu++17 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk -o CMakeFiles/Ekatra.dir/main.cpp.o -c /Users/kushagrarathore/code/per/Ekatra/main.cpp",
+  "file": "/Users/kushagrarathore/code/per/Ekatra/main.cpp",
+  "output": "CMakeFiles/Ekatra.dir/main.cpp.o"
+},
+{
+  "directory": "/Users/kushagrarathore/code/per/Ekatra/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/kushagrarathore/code/per/Ekatra/include -std=gnu++17 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.2.sdk -o CMakeFiles/Ekatra.dir/MergeManager.cpp.o -c /Users/kushagrarathore/code/per/Ekatra/MergeManager.cpp",
+  "file": "/Users/kushagrarathore/code/per/Ekatra/MergeManager.cpp",
+  "output": "CMakeFiles/Ekatra.dir/MergeManager.cpp.o"
+}
+]
