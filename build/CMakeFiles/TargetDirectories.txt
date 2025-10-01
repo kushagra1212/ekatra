@@ -1,3 +1,0 @@
-/Users/kushagrarathore/code/per/Ekatra/build/CMakeFiles/Ekatra.dir
-/Users/kushagrarathore/code/per/Ekatra/build/CMakeFiles/edit_cache.dir
-/Users/kushagrarathore/code/per/Ekatra/build/CMakeFiles/rebuild_cache.dir
