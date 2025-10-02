@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
     name: Build and Test on ${{ matrix.os }}
@@ -20,21 +20,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Set up the MSVC Developer Command Prompt for the Windows runner.
-      # This correctly configures the environment for the Visual Studio compiler.
-      - name: Set up MSVC Developer Command Prompt
+      # Install Ninja on Windows. It's typically pre-installed on macOS/Linux runners.
+      - name: Install Ninja
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        run: choco install ninja
 
       - name: Check CMake Version
         run: cmake --version
 
+      # Configure CMake for a Release build, explicitly using the Ninja generator on all platforms.
+      # This creates a consistent, single-configuration build environment.
       - name: Configure CMake
-        run: cmake -S . -B build -DBUILD_TESTING=ON
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
+      # Build the project using the configured generator (Ninja).
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build
 
+      # Run tests. Because Ninja is a single-configuration generator, we no longer
+      # need the '-C' flag, simplifying the command.
       - name: Run Tests
         working-directory: ./build
-        run: ctest --output-on-failure -C Release
+        run: ctest --output-on-failure
