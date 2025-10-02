@@ -9,7 +9,6 @@ on:
     workflow_dispatch:
 
 jobs:
-    # The 'build_and_test' job runs in a matrix for all 3 platforms.
     build_and_test:
         name: Build and Test on ${{ matrix.os }}
         strategy:
@@ -66,7 +65,6 @@ jobs:
                       ekatra-*.zip
                   if-no-files-found: "ignore"
 
-    # The 'create-release' job runs only after all build_and_test jobs are successful.
     create-release:
         name: Create GitHub Release
         needs: build_and_test
@@ -85,10 +83,9 @@ jobs:
             - name: Create Release and Upload Assets
               uses: softprops/action-gh-release@v2
               with:
-                  # Use the git tag as the release version
                   tag_name: ${{ github.ref_name }}
-                  # Use the git tag in the release name
                   name: "Ekatra ${{ github.ref_name }}"
+                  generate_release_notes: true
                   body: |
                       Automated release for version ${{ github.ref_name }}.
                       Assets are compiled for macOS, Windows, and Linux.
