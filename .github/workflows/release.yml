@@ -39,7 +39,7 @@ jobs:
                   mkdir staging
                   # Copy the executable and documentation into the staging directory
                   cp build/ekatra staging/
-                  cp LICENSE staging/
+                  cp LICENSE.txt staging/
                   cp README.md staging/
                   # Create a compressed archive from the staging directory
                   tar -czvf ekatra-${{ runner.os }}.tar.gz -C staging .
@@ -52,7 +52,7 @@ jobs:
                   mkdir staging
                   # Copy the executable and documentation
                   Copy-Item build/ekatra.exe -Destination staging/
-                  Copy-Item LICENSE -Destination staging/
+                  Copy-Item LICENSE.txt -Destination staging/
                   Copy-Item README.md -Destination staging/
                   # Use 7-Zip to create the archive
                   & 'C:\Program Files\7-Zip\7z.exe' a ekatra-windows-latest.zip ".\staging\*"
