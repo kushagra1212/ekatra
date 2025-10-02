@@ -39,4 +39,4 @@ target_include_directories(run_tests PRIVATE include)
 
 # Add the test to CTest so it can be run automatically
 include(GoogleTest)
-gtest_discover_tests(run_tests)
+gtest_discover_tests(run_tests TARGET run_tests)
