@@ -1,6 +1,7 @@
 #include "ProgressReporter.h"
 #include <iomanip>
 #include <limits>
+#include <sstream>
 
 void ProgressReporter::reportScanBegin() {
   std::cout << "Scanning folders to calculate total size..." << std::endl;
