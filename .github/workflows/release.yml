@@ -43,7 +43,7 @@ jobs:
                   cp build/ekatra staging/
                   cp LICENSE.txt staging/
                   cp README.md staging/
-                  tar -czvf ekatra-${{ runner.os }}.tar.gz -C staging .
+                  tar -czvf ekatra-${{ github.ref_name }}-${{ runner.os }}.tar.gz -C staging .
 
             - name: Package for Windows
               if: runner.os == 'Windows'
@@ -53,7 +53,7 @@ jobs:
                   Copy-Item build/ekatra.exe -Destination staging/
                   Copy-Item LICENSE.txt -Destination staging/
                   Copy-Item README.md -Destination staging/
-                  & 'C:\Program Files\7-Zip\7z.exe' a ekatra-windows-latest.zip ".\staging\*"
+                  & 'C:\Program Files\7-Zip\7z.exe' a  ekatra-${{ github.ref_name }}-windows.zip ".\staging\*"
 
             # Upload the final archive as a build artifact
             - name: Upload Artifact
