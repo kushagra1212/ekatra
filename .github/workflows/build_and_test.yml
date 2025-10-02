@@ -20,19 +20,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # The kitware/cmake-action has been removed. We will use the version of
-      # CMake pre-installed on the runner, which is usually modern enough.
       - name: Check CMake Version
         run: cmake --version
 
+      # Configure CMake for a Release build. This is better for CI.
       - name: Configure CMake
-        run: cmake -S . -B build
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
+      # Explicitly build the Release configuration.
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --config Release
 
-      # Updated the ctest command to be more compatible.
-      # --output-on-failure will print logs if a test fails.
+      # Explicitly tell ctest to run tests from the Release configuration.
       - name: Run Tests
         working-directory: ./build
-        run: ctest --output-on-failure
+        run: ctest --output-on-failure -C Release
