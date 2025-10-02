@@ -5,10 +5,25 @@ project(ekatra)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
 add_executable(ekatra 
     src/MergeManager.cpp
     src/main.cpp
 )
+
+if(MSVC)
+  # This tells the MSVC compiler to use the static C++ runtime library (/MT)
+  # instead of the dynamic one (/MD).
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# endif()
+
+# if((CMAKE_COMPILER_IS_GNUCC OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
+#     # The '-static' flag is a option that instructs the linker to
+#     # prefer static libraries, bundling libgcc, libstdc++, and libwinpthread
+#     # directly into the .exe file.
+#     target_link_options(ekatra PRIVATE -static)
+# endif()
+
 
 target_include_directories(ekatra PUBLIC include)
 
