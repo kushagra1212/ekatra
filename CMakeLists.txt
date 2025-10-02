@@ -15,7 +15,7 @@ if(MSVC)
   # This tells the MSVC compiler to use the static C++ runtime library (/MT)
   # instead of the dynamic one (/MD).
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-# endif()
+endif()
 
 # if((CMAKE_COMPILER_IS_GNUCC OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
 #     # The '-static' flag is a option that instructs the linker to
