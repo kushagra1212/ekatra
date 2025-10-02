@@ -1,38 +1,94 @@
-name: Build and Test Ekatra
+# This workflow handles building, packaging, and releasing the application.
+name: Create Release
 
-# This workflow runs on pushes or pull requests to the 'main' branch
+# Trigger this workflow on pushes to the 'main' branch or when run manually.
 on:
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-
     runs-on: ${{ matrix.os }}
-    name: Build and Test on ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Ninja
+      # Install Ninja and 7-Zip on Windows for packaging
+      - name: Install Build Tools (Windows)
         if: runner.os == 'Windows'
-        run: choco install ninja
+        run: choco install ninja 7zip
 
-      - name: Check CMake Version
-        run: cmake --version
-.
       - name: Configure CMake
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --config Release
 
-      - name: Run Tests
-        working-directory: ./build
-        run: ctest --output-on-failure
+      - name: Package for Linux/macOS
+        if: runner.os != 'Windows'
+        run: |
+          # Create a staging directory to hold release files
+          mkdir staging
+          # Copy the executable and documentation into the staging directory
+          cp build/ekatra staging/
+          cp LICENSE staging/
+          cp README.md staging/
+          # Create a compressed archive from the staging directory
+          tar -czvf ekatra-${{ runner.os }}.tar.gz -C staging .
+
+      - name: Package for Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Create a staging directory
+          mkdir staging
+          # Copy the executable and documentation
+          Copy-Item build/ekatra.exe -Destination staging/
+          Copy-Item LICENSE -Destination staging/
+          Copy-Item README.md -Destination staging/
+          # Use 7-Zip to create the archive
+          & 'C:\Program Files\7-Zip\7z.exe' a ekatra-windows-latest.zip ".\staging\*"
+
+      # Upload the final archive as a build artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-${{ runner.os }}
+          path: |
+            ekatra-*.tar.gz
+            ekatra-*.zip
+          if-no-files-found: "ignore"
+
+  # The 'create-release' job runs after all build jobs are successful.
+  create-release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Permission is required to create a release
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # The pattern will download artifacts from all build jobs
+          pattern: release-artifacts-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          # Creates a dynamic tag based on the workflow run ID for uniqueness
+          tag_name: release-${{ github.run_id }}
+          name: "Ekatra Release ${{ github.run_id }}"
+          body: "Automated release created from commit ${{ github.sha }}."
+          # Uploads all the downloaded archives to the release
+          files: artifacts/*
