@@ -1,17 +1,17 @@
-# This workflow handles building, packaging, and releasing the application.
-name: Create Release
+# This workflow handles testing, building, packaging, and releasing the application.
+name: Test and Create Release
 
-# Trigger this workflow on pushes to the 'main' branch or when run manually.
+# This workflow now triggers when a tag like v1.0.0 is pushed.
 on:
     push:
-        branches:
-            - main
+        tags:
+            - "v*.*.*"
     workflow_dispatch:
 
 jobs:
-    # The 'build' job runs in a matrix to create executables for all 3 platforms.
-    build:
-        name: Build on ${{ matrix.os }}
+    # The 'build_and_test' job runs in a matrix for all 3 platforms.
+    build_and_test:
+        name: Build and Test on ${{ matrix.os }}
         strategy:
             matrix:
                 os: [ubuntu-latest, macos-latest, windows-latest]
@@ -32,29 +32,28 @@ jobs:
             - name: Build
               run: cmake --build build --config Release
 
+            # Run tests after a successful build. If this step fails, the job fails.
+            - name: Run Tests
+              working-directory: ./build
+              run: ctest --output-on-failure
+
             - name: Package for Linux/macOS
               if: runner.os != 'Windows'
               run: |
-                  # Create a staging directory to hold release files
                   mkdir staging
-                  # Copy the executable and documentation into the staging directory
                   cp build/ekatra staging/
-                  cp LICENSE.txt staging/
+                  cp LICENSE staging/
                   cp README.md staging/
-                  # Create a compressed archive from the staging directory
                   tar -czvf ekatra-${{ runner.os }}.tar.gz -C staging .
 
             - name: Package for Windows
               if: runner.os == 'Windows'
               shell: pwsh
               run: |
-                  # Create a staging directory
                   mkdir staging
-                  # Copy the executable and documentation
                   Copy-Item build/ekatra.exe -Destination staging/
-                  Copy-Item LICENSE.txt -Destination staging/
+                  Copy-Item LICENSE -Destination staging/
                   Copy-Item README.md -Destination staging/
-                  # Use 7-Zip to create the archive
                   & 'C:\Program Files\7-Zip\7z.exe' a ekatra-windows-latest.zip ".\staging\*"
 
             # Upload the final archive as a build artifact
@@ -67,10 +66,10 @@ jobs:
                       ekatra-*.zip
                   if-no-files-found: "ignore"
 
-    # The 'create-release' job runs after all build jobs are successful.
+    # The 'create-release' job runs only after all build_and_test jobs are successful.
     create-release:
         name: Create GitHub Release
-        needs: build
+        needs: build_and_test
         runs-on: ubuntu-latest
         permissions:
             contents: write # Permission is required to create a release
@@ -79,7 +78,6 @@ jobs:
             - name: Download all build artifacts
               uses: actions/download-artifact@v4
               with:
-                  # The pattern will download artifacts from all build jobs
                   pattern: release-artifacts-*
                   path: artifacts
                   merge-multiple: true
@@ -87,9 +85,12 @@ jobs:
             - name: Create Release and Upload Assets
               uses: softprops/action-gh-release@v2
               with:
-                  # Creates a dynamic tag based on the workflow run ID for uniqueness
-                  tag_name: release-${{ github.run_id }}
-                  name: "Ekatra Release ${{ github.run_id }}"
-                  body: "Automated release created from commit ${{ github.sha }}."
+                  # Use the git tag as the release version
+                  tag_name: ${{ github.ref_name }}
+                  # Use the git tag in the release name
+                  name: "Ekatra ${{ github.ref_name }}"
+                  body: |
+                      Automated release for version ${{ github.ref_name }}.
+                      Assets are compiled for macOS, Windows, and Linux.
                   # Uploads all the downloaded archives to the release
                   files: artifacts/*
