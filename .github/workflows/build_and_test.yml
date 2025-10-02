@@ -20,18 +20,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Set up the MSVC Developer Command Prompt for the Windows runner.
+      # This correctly configures the environment for the Visual Studio compiler.
+      - name: Set up MSVC Developer Command Prompt
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Check CMake Version
         run: cmake --version
 
-      # Configure CMake for a Release build. This is better for CI.
       - name: Configure CMake
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build
 
-      # Explicitly build the Release configuration.
       - name: Build
         run: cmake --build build --config Release
 
-      # Explicitly tell ctest to run tests from the Release configuration.
       - name: Run Tests
         working-directory: ./build
         run: ctest --output-on-failure -C Release
