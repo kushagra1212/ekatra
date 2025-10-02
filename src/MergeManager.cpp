@@ -1,8 +1,8 @@
 #include "MergeManager.h"
+#include "ProgressReporter/ProgressReporter.h"
 #include <algorithm>
+#include <fstream>
 #include <iostream>
-#include <map>
-#include <string>
 
 const std::map<std::string, fs::path> categoryMap = {
     // Media
@@ -54,127 +54,33 @@ const std::map<std::string, fs::path> categoryMap = {
     {".dmg", "Applications"},
     {".app", "Applications"}};
 
-fs::path MergeManager::getDestinationForFile(const fs::path &file,
-                                             const fs::path &destBaseDir) {
-  std::string ext = file.extension().string();
-  std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-  auto it = categoryMap.find(ext);
-  if (it != categoryMap.end()) {
-    return destBaseDir / it->second;
-  }
-
-  auto userIt = m_userRules.find(ext);
-  if (userIt != m_userRules.end()) {
-    return destBaseDir / userIt->second;
-  }
-
-  return fs::path();
-}
-
-fs::path MergeManager::handleUnknownFile(const fs::path &file,
-                                         const fs::path &destBaseDir) {
-  std::string ext = file.extension().string();
-  std::cout << "\n--------------------------------------------------"
-            << std::endl;
-  std::cout << "Uncategorized file type: '" << ext
-            << "' for file: " << file.filename().string() << std::endl;
-  std::cout << "Where should files of this type go?" << std::endl;
-  std::cout << "  1. Put in 'Other' folder" << std::endl;
-  std::cout << "  2. Create a new folder" << std::endl;
-  std::cout << "Enter your choice (1-2): ";
-
-  int choice = 0;
-  std::cin >> choice;
-
-  fs::path targetSubDir;
-
-  if (choice == 2) {
-    std::cout << "Enter new folder name (e.g., 'CAD_Files'): ";
-    std::string newDirName;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(),
-                    '\n'); // Safely clear buffer
-    std::getline(std::cin, newDirName);
-    targetSubDir = newDirName;
-  } else {
-    targetSubDir = "Other";
-  }
-
-  std::cout << "'" << ext << "' files will now be placed in '"
-            << targetSubDir.string() << "'." << std::endl;
-  std::cout << "--------------------------------------------------\n"
-            << std::endl;
-
-  // Save this new rule for the rest of the session
-  m_userRules[ext] = targetSubDir;
-  return destBaseDir / targetSubDir;
-}
-
-fs::path MergeManager::getUniquePath(const fs::path &targetPath) {
-  if (!fs::exists(targetPath))
-    return targetPath;
-
-  fs::path newPath = targetPath;
-  const std::string stem = targetPath.stem().string();
-  const std::string extension = targetPath.extension().string();
-  int counter = 1;
-
-  while (fs::exists(newPath)) {
-    newPath = targetPath.parent_path() /
-              (stem + "_" + std::to_string(counter++) + extension);
-  }
-  return newPath;
-}
-
-void MergeManager::processDirectory(const fs::path &sourceDir,
-                                    const fs::path &destBaseDir, Operation op,
-                                    bool verbose, bool skipDuplicates) {
-  try {
-    for (const auto &entry : fs::recursive_directory_iterator(sourceDir)) {
-      if (!fs::is_regular_file(entry.symlink_status()))
-        continue;
-
-      if (verbose) {
-        std::cout << "Processing: " << entry.path().string() << std::endl;
-      }
-
-      fs::path targetDir = getDestinationForFile(entry.path(), destBaseDir);
-
-      if (targetDir.empty()) {
-        targetDir = handleUnknownFile(entry.path(), destBaseDir);
-      }
-
-      fs::create_directories(targetDir);
-
-      fs::path destFile;
-      if (skipDuplicates) {
-        destFile = targetDir / entry.path().filename();
-        if (fs::exists(destFile)) {
-          if (verbose) {
-            std::cout << "  -> Skipping (already exists): "
-                      << destFile.filename().string() << std::endl;
-          }
-          continue;
-        }
-      } else {
-        destFile = getUniquePath(targetDir / entry.path().filename());
-      }
-
-      std::error_code ec;
-      if (op == Operation::Copy) {
-        fs::copy(entry.path(), destFile, ec);
-      } else {
-        fs::rename(entry.path(), destFile, ec);
-      }
-
-      if (ec) {
-        std::cerr << "Error processing " << entry.path().string() << ": "
-                  << ec.message() << std::endl;
-      }
+void MergeManager::scanDirectory(const fs::path &sourceDir,
+                                 std::vector<fs::path> &fileList) {
+  for (const auto &entry : fs::recursive_directory_iterator(sourceDir)) {
+    if (fs::is_regular_file(entry.symlink_status())) {
+      fileList.push_back(entry.path());
     }
-  } catch (const fs::filesystem_error &e) {
-    std::cerr << "Filesystem error: " << e.what() << std::endl;
   }
+}
+
+void MergeManager::copyFileWithProgress(
+    const fs::path &from, const fs::path &to,
+    const std::function<void(long long)> &onProgress) {
+  const size_t bufferSize = 8192;
+  char buffer[bufferSize];
+  long long bytesCopied = 0;
+
+  std::ifstream in(from, std::ios::binary);
+  std::ofstream out(to, std::ios::binary);
+
+  while (in.read(buffer, bufferSize)) {
+    out.write(buffer, in.gcount());
+    bytesCopied += in.gcount();
+    onProgress(bytesCopied);
+  }
+  out.write(buffer, in.gcount());
+  bytesCopied += in.gcount();
+  onProgress(bytesCopied); // Final update
 }
 
 void MergeManager::process(const fs::path &sourceA, const fs::path &sourceB,
@@ -185,18 +91,93 @@ void MergeManager::process(const fs::path &sourceA, const fs::path &sourceB,
     return;
   }
 
+  ProgressReporter reporter;
+
+  reporter.reportScanBegin();
+  std::vector<fs::path> allFiles;
+  scanDirectory(sourceA, allFiles);
+  scanDirectory(sourceB, allFiles);
+  long long totalSize = 0;
+  for (const auto &file : allFiles) {
+    totalSize += fs::file_size(file);
+  }
+  reporter.reportScanComplete(allFiles.size(), totalSize);
+
+  reporter.startProcessing();
+
   try {
     fs::create_directories(dest);
-    std::cout << "Starting merge for Folder A: " << sourceA.string()
-              << std::endl;
-    processDirectory(sourceA, dest, op, verbose, skipDuplicates);
+    for (const auto &filePath : allFiles) {
+      fs::path targetDir = getDestinationForFile(filePath, dest);
+      if (targetDir.empty()) {
+        targetDir = reporter.promptForUnknownFile(filePath, dest, m_userRules);
+      }
+      fs::create_directories(targetDir);
 
-    std::cout << "Starting merge for Folder B: " << sourceB.string()
-              << std::endl;
-    processDirectory(sourceB, dest, op, verbose, skipDuplicates);
+      fs::path destFile;
+      if (skipDuplicates) {
+        destFile = targetDir / filePath.filename();
+        if (fs::exists(destFile)) {
+          reporter.reportFileProcessed(filePath);
+          continue;
+        }
+      } else {
+        destFile = getUniquePath(targetDir / filePath.filename());
+      }
 
-    std::cout << "\n✅ Merge operation completed successfully!" << std::endl;
+      std::error_code ec;
+      if (op == Operation::Copy) {
+        reporter.startFile(filePath);
+        copyFileWithProgress(filePath, destFile, [&](long long bytes) {
+          reporter.updateFileProgress(bytes);
+        });
+        reporter.finishFile();
+      } else { // Operation::Move
+        reporter.reportFileProcessed(
+            filePath); 
+        fs::rename(filePath, destFile, ec);
+      }
+
+      if (ec) {
+        std::cerr << "\nError processing " << filePath.string() << ": "
+                  << ec.message() << std::endl;
+      }
+    }
+    reporter.finishProcessing();
   } catch (const fs::filesystem_error &e) {
-    std::cerr << "Fatal error: " << e.what() << std::endl;
+    std::cerr << "\nFatal error: " << e.what() << std::endl;
   }
 }
+
+fs::path MergeManager::getDestinationForFile(const fs::path &file,
+                                             const fs::path &destBaseDir) {
+  std::string ext = file.extension().string();
+  if (ext.empty())
+    return fs::path();
+  std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+  auto it = categoryMap.find(ext);
+  if (it != categoryMap.end()) {
+    return destBaseDir / it->second;
+  }
+  auto userIt = m_userRules.find(ext);
+  if (userIt != m_userRules.end()) {
+    return destBaseDir / userIt->second;
+  }
+  return fs::path();
+}
+
+fs::path MergeManager::getUniquePath(const fs::path &targetPath) {
+  if (!fs::exists(targetPath))
+    return targetPath;
+  fs::path newPath = targetPath;
+  const std::string stem = targetPath.stem().string();
+  const std::string extension = targetPath.extension().string();
+  int counter = 1;
+  while (fs::exists(newPath)) {
+    newPath = targetPath.parent_path() /
+              (stem + "_" + std::to_string(counter++) + extension);
+  }
+  return newPath;
+}
+

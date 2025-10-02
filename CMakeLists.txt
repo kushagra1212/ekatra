@@ -1,13 +1,23 @@
 cmake_minimum_required(VERSION 3.16)
 project(ekatra)
 
-# Use C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
-add_executable(ekatra 
+add_library(ekatra_lib STATIC
     src/MergeManager.cpp
+    src/ProgressBar/ProgressBar.cpp
+    src/ProgressReporter/ProgressReporter.cpp
+)
+
+
+
+target_include_directories(ekatra_lib PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+add_executable(ekatra
     src/main.cpp
 )
 
@@ -19,13 +29,13 @@ if((CMAKE_COMPILER_IS_GNUCC OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND CMAKE
 endif()
 
 
-target_include_directories(ekatra PUBLIC include)
+target_link_libraries(ekatra PRIVATE ekatra_lib)
+
 
 # --- Testing Setup ---
 # Enable testing with CTest
 enable_testing()
 
-# Fetch GoogleTest from repository
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -34,16 +44,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
-# Create a new executable for our tests
 add_executable(run_tests
-  tests/MergeManager_test.cpp # Path to your new test file
-  src/MergeManager.cpp # Include the source file you are testing
+  tests/MergeManager_test.cpp 
 )
 
-# Link the test executable against GoogleTest and your application's include paths
-target_link_libraries(run_tests PRIVATE  GTest::gtest GTest::gtest_main)
-target_include_directories(run_tests PRIVATE include)
-
+target_link_libraries(run_tests PRIVATE ekatra_lib GTest::gtest GTest::gtest_main)
 
 
 # Add the test to CTest so it can be run automatically

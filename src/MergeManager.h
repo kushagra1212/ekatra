@@ -1,8 +1,10 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -14,15 +16,20 @@ public:
                const fs::path &dest, Operation op, bool verbose,
                bool skipDuplicates);
 
+               
   fs::path getDestinationForFile(const fs::path &file,
                                  const fs::path &destBaseDir);
 
 private:
-  void processDirectory(const fs::path &sourceDir, const fs::path &destBaseDir,
-                        Operation op, bool verbose, bool skipDuplicates);
+  void scanDirectory(const fs::path &sourceDir,
+                     std::vector<fs::path> &fileList);
+
+  void copyFileWithProgress(const fs::path &from, const fs::path &to,
+                            const std::function<void(long long)> &onProgress);
+
   fs::path getUniquePath(const fs::path &targetPath);
 
-  fs::path handleUnknownFile(const fs::path &file, const fs::path &destBaseDir);
-
+  // This map stores user-defined rules for unknown file extensions.
   std::map<std::string, fs::path> m_userRules;
 };
+
