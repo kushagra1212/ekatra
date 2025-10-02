@@ -41,7 +41,7 @@ jobs:
               run: |
                   mkdir staging
                   cp build/ekatra staging/
-                  cp LICENSE staging/
+                  cp LICENSE.txt staging/
                   cp README.md staging/
                   tar -czvf ekatra-${{ runner.os }}.tar.gz -C staging .
 
@@ -51,7 +51,7 @@ jobs:
               run: |
                   mkdir staging
                   Copy-Item build/ekatra.exe -Destination staging/
-                  Copy-Item LICENSE -Destination staging/
+                  Copy-Item LICENSE.txt -Destination staging/
                   Copy-Item README.md -Destination staging/
                   & 'C:\Program Files\7-Zip\7z.exe' a ekatra-windows-latest.zip ".\staging\*"
 
