@@ -14,11 +14,12 @@ public:
                const fs::path &dest, Operation op, bool verbose,
                bool skipDuplicates);
 
+  fs::path getDestinationForFile(const fs::path &file,
+                                 const fs::path &destBaseDir);
+
 private:
   void processDirectory(const fs::path &sourceDir, const fs::path &destBaseDir,
                         Operation op, bool verbose, bool skipDuplicates);
-  fs::path getDestinationForFile(const fs::path &file,
-                                 const fs::path &destBaseDir);
   fs::path getUniquePath(const fs::path &targetPath);
 
   fs::path handleUnknownFile(const fs::path &file, const fs::path &destBaseDir);

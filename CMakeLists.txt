@@ -5,11 +5,38 @@ project(ekatra)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Since argparse.hpp is in the include directory
-include_directories(include)
-
 add_executable(ekatra 
-  main.cpp 
-  MergeManager.cpp 
-  MergeManager.h
+    src/MergeManager.cpp
+    src/main.cpp
 )
+
+target_include_directories(ekatra PUBLIC include)
+
+# --- Testing Setup ---
+# Enable testing with CTest
+enable_testing()
+
+# Fetch GoogleTest from repository
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+ DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(googletest)
+
+# Create a new executable for our tests
+add_executable(run_tests
+  tests/MergeManager_test.cpp # Path to your new test file
+  src/MergeManager.cpp # Include the source file you are testing
+)
+
+# Link the test executable against GoogleTest and your application's include paths
+target_link_libraries(run_tests PRIVATE  GTest::gtest GTest::gtest_main)
+target_include_directories(run_tests PRIVATE include)
+
+
+
+# Add the test to CTest so it can be run automatically
+include(GoogleTest)
+gtest_discover_tests(run_tests)

@@ -131,7 +131,7 @@ void MergeManager::processDirectory(const fs::path &sourceDir,
                                     bool verbose, bool skipDuplicates) {
   try {
     for (const auto &entry : fs::recursive_directory_iterator(sourceDir)) {
-      if (!fs::is_regular_file(entry.status()))
+      if (!fs::is_regular_file(entry.symlink_status()))
         continue;
 
       if (verbose) {
