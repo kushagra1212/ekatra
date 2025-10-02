@@ -30,7 +30,7 @@ jobs:
         run: cmake --version
 
       - name: Configure CMake
-        run: cmake -S . -B build
+        run: cmake -S . -B build -DBUILD_TESTING=ON
 
       - name: Build
         run: cmake --build build --config Release
