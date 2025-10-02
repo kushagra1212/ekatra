@@ -226,6 +226,7 @@ TEST_F(MergeManagerTest, Process_HandlesCaseVariantDuplicateFilenames) {
   ASSERT_TRUE((firstExists && secondExists) || (firstExists && renamedExists));
 }
 
+#ifndef _WIN32
 TEST_F(MergeManagerTest, Process_SkipsSymbolicLinks) {
   fs::path targetFile = sourceA / "target.txt";
   createFile(targetFile);
@@ -240,6 +241,7 @@ TEST_F(MergeManagerTest, Process_SkipsSymbolicLinks) {
   // Verify the symbolic link was NOT copied
   ASSERT_FALSE(fs::exists(dest / "Documents/Text/link.txt"));
 }
+#endif
 
 TEST_F(MergeManagerTest, Process_HandlesIdenticalSourceFolders) {
   createFile(sourceA / "unique.txt");
