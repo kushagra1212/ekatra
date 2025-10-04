@@ -111,6 +111,16 @@ These rules are checked before the default sorting logic.
 ### 2. Interactive Rule Creation
 When Ekatra finds a file it doesn't recognize, it prompts you with options. If you choose "Create a custom regex rule," it will guide you to create a new rule right in the terminal. This rule is then remembered for the rest of the session, letting you build up complex sorting logic without ever touching a config file.
 
+**Example 1: Creating a Regex Rule**
+Here, Ekatra finds a WhatsApp document that's missing its file extension. We can create a regex rule to catch all similar files.
+
+![Ekatra creating a regex rule for a WhatsApp document](./docs/assets/ekatra-regex-prompt.png)
+
+**Example 2: Creating a Folder Rule**
+Ekatra finds a `.cxx` C++ source file. We can tell it to put all files with this extension into the existing `Code` folder.
+
+![Ekatra creating a folder rule for a C++ file](./docs/assets/ekatra-folder-prompt.png)
+
 ## Building from Source
 You'll need:
 - A C++17 compiler (Clang, GCC, MSVC)
