@@ -15,7 +15,7 @@ void ProgressReporter::reportScanComplete(size_t fileCount,
 }
 
 void ProgressReporter::startProcessing() {
-  m_overallBar.start(m_totalSize, "Total Progress"); 
+  m_overallBar.start(m_totalSize, "Total Progress");
   draw();
 }
 
@@ -30,15 +30,15 @@ void ProgressReporter::startFile(const fs::path &path) {
   const std::string TRUNCATION_MARKER = "...";
 
   if (filename.length() > LABEL_WIDTH) {
-    filename = filename.substr(0, LABEL_WIDTH - TRUNCATION_MARKER.length()) + TRUNCATION_MARKER;
+    filename = filename.substr(0, LABEL_WIDTH - TRUNCATION_MARKER.length()) +
+               TRUNCATION_MARKER;
   }
 
   std::stringstream ss;
   ss << std::left << std::setw(LABEL_WIDTH) << filename;
   std::string fileLabel = ss.str();
 
-
-  m_fileBar.start(m_fileSize, fileLabel); 
+  m_fileBar.start(m_fileSize, fileLabel);
 
   std::cout << std::endl;
 
@@ -57,8 +57,9 @@ void ProgressReporter::finishFile() {
   std::cout << "\x1B[A";
 
   // 2. Clear the "Overall" line and redraw it with the latest progress.
-  std::cout << "\r\x1B[K" << m_overallBar.getString(m_processedSize + m_fileBytesProcessed);
-  
+  std::cout << "\r\x1B[K"
+            << m_overallBar.getString(m_processedSize + m_fileBytesProcessed);
+
   // 3. Move the cursor down to the now-obsolete "File" progress line.
   std::cout << std::endl;
 
@@ -68,7 +69,7 @@ void ProgressReporter::finishFile() {
   // 5. Move the cursor back up to the end of the "Overall" progress line
   //    to be ready for the next update.
   std::cout << "\x1B[A";
-  
+
   std::cout.flush(); // Ensure changes are written to the console.
 }
 
@@ -86,7 +87,8 @@ void ProgressReporter::finishProcessing() {
 void ProgressReporter::draw() {
   // To avoid flickering, only redraw periodically.
   auto now = std::chrono::steady_clock::now();
-  if (std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastDrawTime)
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(now -
+                                                            m_lastDrawTime)
               .count() < 50 &&
       m_processedSize + m_fileBytesProcessed < m_totalSize) {
     return;
@@ -95,7 +97,7 @@ void ProgressReporter::draw() {
 
   if (m_isCopyingFile) {
     // For a stable two-line display, move cursor up, clear line, draw, repeat.
-    std::cout << "\x1B[A"; // ANSI escape code to move cursor up one line
+    std::cout << "\x1B[A";   // ANSI escape code to move cursor up one line
     std::cout << "\r\x1B[K"; // Carriage return and clear line
     std::cout << m_overallBar.getString(m_processedSize + m_fileBytesProcessed);
     std::cout << std::endl;
@@ -108,47 +110,78 @@ void ProgressReporter::draw() {
   }
   std::cout.flush();
 }
+fs::path ProgressReporter::promptForUnknownFile(
+    const fs::path &file, const fs::path &destBaseDir,
+    std::map<std::string, fs::path> &userRules,
+    std::vector<std::pair<std::regex, std::string>> &customRules) {
 
-fs::path
-ProgressReporter::promptForUnknownFile(const fs::path &file,
-                                     const fs::path &destBaseDir,
-                                     std::map<std::string, fs::path> &userRules) {
   std::cout << std::string(100, ' ') << '\r'; // Clear progress line
   std::string ext = file.extension().string();
   std::cout << "\n--------------------------------------------------"
             << std::endl;
-  std::cout << "Uncategorized file type: '" << ext
+  std::cout << "Uncategorized file type: '"
+            << (ext.empty() ? "[no extension]" : ext)
             << "' for file: " << file.filename().string() << std::endl;
-  std::cout << "Where should files of this type go?" << std::endl;
+  std::cout << "What should be done with this type of file?" << std::endl;
   std::cout << "  1. Put in 'Other' folder" << std::endl;
-  std::cout << "  2. Create a new folder" << std::endl;
-  std::cout << "Enter your choice (1-2): ";
+  std::cout << "  2. Create a new folder for this extension" << std::endl;
+  std::cout << "  3. Create a custom regex rule for similar filenames"
+            << std::endl;
+  std::cout << "Enter your choice (1-3): ";
 
   int choice = 0;
   std::cin >> choice;
-  while (std::cin.fail() || (choice != 1 && choice != 2)) {
+  while (std::cin.fail() || (choice < 1 || choice > 3)) {
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cout << "Invalid input. Please enter 1 or 2: ";
+    std::cout << "Invalid input. Please enter 1, 2, or 3: ";
     std::cin >> choice;
   }
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(),
+                  '\n'); // Clear buffer
 
-  fs::path targetSubDir;
-  if (choice == 2) {
-    std::cout << "Enter new folder name (e.g., 'CAD_Files'): ";
-    std::string newDirName;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::getline(std::cin, newDirName);
-    targetSubDir = newDirName;
+  if (choice == 3) {
+    std::cout
+        << "Enter a regex to match filenames (e.g., 'invoice-.*\\.pdf'): ";
+    std::string regexStr;
+    std::getline(std::cin, regexStr);
+
+    std::cout << "Enter the destination folder for this rule (e.g., "
+                 "'Financial/Invoices'): ";
+    std::string destination;
+    std::getline(std::cin, destination);
+
+    try {
+      customRules.emplace_back(std::regex(regexStr), destination);
+      std::cout << "Rule created. '" << regexStr << "' will be moved to '"
+                << destination << "'." << std::endl;
+      std::cout << "--------------------------------------------------\n"
+                << std::endl;
+
+      return destBaseDir / destination;
+    } catch (const std::regex_error &e) {
+      std::cerr << "Invalid regex provided: " << e.what()
+                << ". Defaulting to 'Other' folder for this file." << std::endl;
+      return destBaseDir / "Other";
+    }
+
   } else {
-    targetSubDir = "Other";
+    fs::path targetSubDir;
+    if (choice == 2) {
+      std::cout << "Enter new folder name for '" << ext << "' files: ";
+      std::string newDirName;
+      std::getline(std::cin, newDirName);
+      targetSubDir = newDirName;
+    } else {
+      targetSubDir = "Other";
+    }
+
+    std::cout << "'" << ext << "' files will now be placed in '"
+              << targetSubDir.string() << "'." << std::endl;
+    std::cout << "--------------------------------------------------\n"
+              << std::endl;
+
+    userRules[ext] = targetSubDir;
+    return destBaseDir / targetSubDir;
   }
-
-  std::cout << "'" << ext << "' files will now be placed in '"
-            << targetSubDir.string() << "'." << std::endl;
-  std::cout << "--------------------------------------------------\n"
-            << std::endl;
-
-  userRules[ext] = targetSubDir;
-  return destBaseDir / targetSubDir;
 }

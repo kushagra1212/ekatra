@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include <regex>
 #include <string>
 
 namespace fs = std::filesystem;
@@ -22,9 +23,10 @@ public:
   void reportFileProcessed(const fs::path &path);
   void finishProcessing();
 
-  fs::path promptForUnknownFile(const fs::path &file,
-                                const fs::path &destBaseDir,
-                                std::map<std::string, fs::path> &userRules);
+  fs::path promptForUnknownFile(
+      const fs::path &file, const fs::path &destBaseDir,
+      std::map<std::string, fs::path> &userRules,
+      std::vector<std::pair<std::regex, std::string>> &customRules);
 
 private:
   void draw();

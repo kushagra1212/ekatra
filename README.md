@@ -1,24 +1,18 @@
 # Ekatra
+**A command-line tool to merge and organize messy folders.**
 
-A command-line tool to merge and organize messy folders.
+Ekatra is a C++ tool that merges two folders into a single, clean directory, sorting files by type as it goes. I wrote it to solve the common headache of cleaning up scattered files.
 
-Ekatra cleans up scattered files by taking two directories, merging their contents, and sorting everything into a clean folder structure. It's a simple C++ tool for a common problem.
+## Features
+- **Sorts files into default categories** (Media/Images, Documents/Text, Archives, etc.).
+- **Supports custom sorting** with a regex rules file for more control.
+- **Ignores hidden files** (dotfiles like `.DS_Store`) by default to avoid clutter, with an option to include them.
+- If it finds a file type it doesn't recognize, it **prompts you to create a new rule** for it—this can be a simple folder for that extension or a new regex for similar filenames.
+- **Renames duplicate files** by default (`file_1.txt`) to prevent overwriting. You can also tell it to just skip them.
+- **Cross-platform C++17** that builds and runs on macOS, Linux, and Windows.
 
-## What It Does
-
-- **Sorts files by type:** Automatically puts files into folders like `Media/Images`, `Documents/Text`, `Archives`, etc.
-
-- **Copies or Moves files:** You can choose to `copy` files (safe) or `move` them (faster).
-
-- **Handles duplicate filenames:** By default, it renames duplicates (`file_1.txt`) so nothing is overwritten. You can also tell it to just skip them.
-
-- **Asks about unknown files:** If it finds a file type it doesn't recognize, it asks you where to put it and remembers your choice.
-
-- **Works anywhere:** It's standard C++17, so it compiles and runs on macOS, Linux, and Windows.
-
-## The Folder Structure It Creates
-
-Here’s where your files will end up:
+## Default Folder Structure
+Here’s where your files will end up with the standard rules:
 
 ```
 📁 Destination/
@@ -32,81 +26,98 @@ Here’s where your files will end up:
 ├── 📁 Audio/ (.mp3, .wav, .aac, ...)
 ├── 📁 Archives/ (.zip, .rar, .7z, ...)
 ├── 📁 Code/ (.cpp, .py, .js, ...)
-└── 📁 Other/ (For anything it doesn't recognize)
+└── 📁 Other/ (For anything that doesn't fit the rules)
 ```
 
 ## How to Use It
-
-Run it from your terminal like this:
-
+Run it from your terminal:
 ```bash
 ekatra <source_A> <source_B> <destination> [options]
-
 ```
 
 ### Arguments & Options
 
-| Argument      | Description                                        |
-| ------------- | -------------------------------------------------- |
-| `source_A`    | **Required.** The first folder.                    |
-| `source_B`    | **Required.** The second folder.                   |
+| Argument      | Description                                  |
+|---------------|----------------------------------------------|
+| `source_A`    | **Required.** The first source folder.       |
+| `source_B`    | **Required.** The second source folder.      |
 | `destination` | **Required.** Where the organized files should go. |
 
-| Option              | Shorthand | Description                                              | Default |
-| ------------------- | --------- | -------------------------------------------------------- | ------- |
-| `--mode <mode>`     |           | Use `copy` or `move`.                                    | `copy`  |
-| `--skip-duplicates` |           | Skips files that already exist instead of renaming them. | `false` |
-| `--verbose`         | `-v`      | Shows every file being processed.                        | `false` |
-| `--help`            |           | Shows the help message.                                  |         |
+| Option             | Shorthand | Description                                           | Default |
+|--------------------|-----------|-------------------------------------------------------|---------|
+| `--mode <mode>`      |           | Use `copy` (safe) or `move` (fast).                   | `copy`  |
+| `--skip-duplicates`  |           | Don't rename duplicates; just skip them.              | `false` |
+| `--include-hidden`   |           | Includes hidden files (dotfiles) in the merge.        | `false` |
+| `--rules <file>`     |           | Path to a custom text file for regex sorting rules.   |         |
+| `--verbose`          | `-v`      | Shows every file being processed.                     | `false` |
+| `--help`             |           | Shows the help message.                               |         |
 
 ### Examples
-
 **Basic copy:**
-
 ```bash
-./ekatra ~/Downloads/FolderA ~/Desktop/FolderB ~/Documents/Merged --verbose
+./ekatra ~/Downloads/FolderA ~/Desktop/FolderB ~/Documents/Merged
 ```
 
-**Move files and skip any duplicates:**
-
+**Move files, skip duplicates, and include hidden files:**
 ```bash
-/ekatra /Volumes/External/Photos /Volumes/Backup/OldPhotos ~/Pictures/Organized --mode move --skip-duplicates
+./ekatra /vol/Photos /vol/Backup ~/Pictures/Organized --mode move --skip-duplicates --include-hidden
 ```
+
+**Sort using a custom rules file:**
+```bash
+./ekatra ~/AllMyDocs ~/WorkDocs ~/Sorted --rules ./my_rules.txt
+```
+
+## Advanced Sorting with Regex
+You can extend the default sorting logic with regular expressions in two ways:
+
+### 1. Using a Rules File (`--rules`)
+Provide a text file where each line is a rule in the format `regex:destination_folder`.
+
+**Example `my_rules.txt`:**
+```
+# Comments are ignored
+# Sort financial documents
+^invoice-.*\.pdf$:Financial/Invoices
+.*-receipt-\d{4}\.jpg$:Financial/Receipts
+
+# Sort university work
+^CS101-assignment-.*$:University/CS101
+^MATH203-lecture-notes\.pdf$:University/MATH203
+```
+
+These rules are checked before the default sorting logic.
+
+### 2. Interactive Rule Creation
+When Ekatra finds a file it doesn't recognize, it prompts you with options. If you choose "Create a custom regex rule," it will guide you to create a new rule right in the terminal. This rule is then remembered for the rest of the session, letting you build up complex sorting logic without ever touching a config file.
 
 ## Building from Source
-
-### You'll need:
-
+You'll need:
 - A C++17 compiler (Clang, GCC, MSVC)
-
 - CMake (3.16 or newer)
 
-### Steps:
-
+**Steps:**
 1. **Clone the repo:**
+   ```bash
+   git clone git@github.com:kushagra1212/ekatra.git
+   cd ekatra
+   ```
 
-```bash
-git clone https://github.com/your-username/ekatra.git
-cd ekatra
-```
+2.  **Configure with CMake:**
+    ```bash
+    cmake -S . -B build
+    ```
 
-2. **Set up the build directory with CMake:**
+3.  **Compile:**
+    ```bash
+    cmake --build build
+    ```
 
-```bash
-cmake -S . -B build
-```
+4.  **Run:**
+    The executable is in the `build` folder.
+    ```bash
+    ./build/ekatra --help
+    ```
 
-3. **Compile it:**
-
-```bash
-cmake --build build
-```
-
-4. **Run it:**
-   The program will be in the `build` folder
-
-```bash
-./build/ekatra --help
-```
-
+---
 Copyright (c) 2025 Kushagra Rathore. Released under the GNU GPL v2.0 License.

@@ -29,6 +29,15 @@ int main(int argc, char *argv[]) {
       .default_value(false)
       .implicit_value(true);
 
+  program.add_argument("--include-hidden")
+      .help("Include hidden files (files starting with a dot). Ignored by "
+            "default.")
+      .default_value(false)
+      .implicit_value(true);
+
+  program.add_argument("--rules")
+      .help("Path to a text file containing custom regex sorting rules.")
+      .default_value(std::string(""));
   try {
     program.parse_args(argc, argv);
   } catch (const std::runtime_error &err) {
@@ -36,26 +45,27 @@ int main(int argc, char *argv[]) {
     std::cerr << program;
     return 1;
   }
+  ProcessOptions options;
+  options.sourceA = program.get<std::string>("source_a");
+  options.sourceB = program.get<std::string>("source_b");
+  options.destination = program.get<std::string>("destination");
+  options.verbose = program.get<bool>("--verbose");
+  options.skipDuplicates = program.get<bool>("--skip-duplicates");
+  options.includeHidden = program.get<bool>("--include-hidden");
+  options.rulesFile = program.get<std::string>("--rules");
 
-  fs::path sourceA = program.get<std::string>("source_a");
-  fs::path sourceB = program.get<std::string>("source_b");
-  fs::path dest = program.get<std::string>("destination");
-  auto modeStr = program.get<std::string>("--mode");
-  bool verbose = program.get<bool>("--verbose");
-  bool skipDuplicates = program.get<bool>("--skip-duplicates");
-
-  MergeManager::Operation op = MergeManager::Operation::Copy;
-  if (modeStr == "move") {
-    op = MergeManager::Operation::Move;
-    std::cout << "⚠️ Running in MOVE mode. Original files will be deleted."
+  if (program.get<std::string>("--mode") == "move") {
+    options.operation = MergeManager::Operation::Move;
+    std::cout << "Running in MOVE mode. Original files will be deleted."
               << std::endl;
   } else {
+    options.operation = MergeManager::Operation::Copy;
     std::cout << "Running in COPY mode. Original files will be preserved."
               << std::endl;
   }
 
   MergeManager manager;
-  manager.process(sourceA, sourceB, dest, op, verbose, skipDuplicates);
+  manager.process(options);
 
   return 0;
 }
