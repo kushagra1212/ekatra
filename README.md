@@ -114,12 +114,12 @@ When Ekatra finds a file it doesn't recognize, it prompts you with options. If y
 **Example 1: Creating a Regex Rule**
 Here, Ekatra finds a WhatsApp document that's missing its file extension. We can create a regex rule to catch all similar files.
 
-![Ekatra creating a regex rule for a WhatsApp document](./docs/assets/ekatra-regex-prompt.png)
+![Ekatra creating a regex rule for a WhatsApp document](./docs/assets/ekatra-regex-prompt.PNG)
 
 **Example 2: Creating a Folder Rule**
 Ekatra finds a `.cxx` C++ source file. We can tell it to put all files with this extension into the existing `Code` folder.
 
-![Ekatra creating a folder rule for a C++ file](./docs/assets/ekatra-folder-prompt.png)
+![Ekatra creating a folder rule for a C++ file](./docs/assets/ekatra-folder-prompt.PNG)
 
 ## Building from Source
 You'll need:
