@@ -49,6 +49,16 @@ protected:
     ofs.close();
   }
 
+  std::vector<std::string> readLines(const fs::path &path) {
+    std::vector<std::string> lines;
+    std::ifstream file(path);
+    std::string line;
+    while (std::getline(file, line)) {
+      lines.push_back(line);
+    }
+    return lines;
+  }
+
   MergeManager manager;
   fs::path baseDir;
   ProcessOptions options;
@@ -413,4 +423,60 @@ TEST_F(MergeManagerTest, Process_InteractiveRegexRuleCreation) {
   // defined by the user interactively.
   ASSERT_TRUE(fs::exists(options.destination /
                          "Reports/ProjectAlpha/project-alpha-report.dat"));
+}
+
+TEST_F(MergeManagerTest, ScanOnly_IdentifiesUncategorizedFiles) {
+  // 1. SETUP: Create a mix of known and unknown files.
+  fs::path knownFile = options.sourceA / "known.txt";
+  fs::path unknownFile1 = options.sourceB / "unknown.dat";
+  fs::path unknownFile2 = options.sourceA / "archive.special";
+  createFile(knownFile);
+  createFile(unknownFile1);
+  createFile(unknownFile2);
+
+  // 2. ACTION: Run the scan and specify an output file.
+  fs::path scanOutputPath = baseDir / "scan_results.txt";
+  options.scanFile = scanOutputPath.string();
+  manager.scanOnly(options);
+
+  // 3. VERIFY:
+  // Check that the output file was created.
+  ASSERT_TRUE(fs::exists(scanOutputPath));
+
+  // Read the file and check its contents.
+  std::vector<std::string> lines = readLines(scanOutputPath);
+  ASSERT_EQ(lines.size(), 2); // Should only contain the 2 unknown files.
+
+  // Check that the paths of the unknown files are in the output.
+  // We use find because the order isn't guaranteed.
+  ASSERT_NE(std::find(lines.begin(), lines.end(), unknownFile1.string()),
+            lines.end());
+  ASSERT_NE(std::find(lines.begin(), lines.end(), unknownFile2.string()),
+            lines.end());
+
+  // Check that the known file is NOT in the output.
+  ASSERT_EQ(std::find(lines.begin(), lines.end(), knownFile.string()),
+            lines.end());
+
+  // Check that no files were actually moved or copied.
+  ASSERT_TRUE(fs::is_empty(options.destination));
+}
+
+TEST_F(MergeManagerTest, ScanOnly_HandlesNoUncategorizedFiles) {
+  // 1. SETUP: Create only files with known extensions.
+  createFile(options.sourceA / "document.pdf");
+  createFile(options.sourceB / "photo.jpg");
+
+  // 2. ACTION: Run the scan.
+  fs::path scanOutputPath = baseDir / "scan_results.txt";
+  options.scanFile = scanOutputPath.string();
+  manager.scanOnly(options);
+
+  // 3. VERIFY:
+  // Check that the output file was NOT created, because there was nothing to
+  // report.
+  ASSERT_FALSE(fs::exists(scanOutputPath));
+
+  // Check that no files were actually moved or copied.
+  ASSERT_TRUE(fs::is_empty(options.destination));
 }

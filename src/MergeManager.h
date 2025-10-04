@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-
 namespace fs = std::filesystem;
 
 struct ProcessOptions {
@@ -19,6 +18,7 @@ struct ProcessOptions {
   bool skipDuplicates = false;
   bool includeHidden = false;
   std::string rulesFile;
+  std::string scanFile;
 };
 
 class MergeManager {
@@ -26,6 +26,8 @@ public:
   using Operation = ProcessOptions::Operation;
 
   void process(const ProcessOptions &options);
+
+  void scanOnly(const ProcessOptions &options);
 
   fs::path getDestinationForFile(const fs::path &file,
                                  const fs::path &destBaseDir);

@@ -9,6 +9,7 @@ Ekatra is a C++ tool that merges two folders into a single, clean directory, sor
 - **Ignores hidden files** (dotfiles like `.DS_Store`) by default to avoid clutter, with an option to include them.
 - If it finds a file type it doesn't recognize, it **prompts you to create a new rule** for it—this can be a simple folder for that extension or a new regex for similar filenames.
 - **Renames duplicate files** by default (`file_1.txt`) to prevent overwriting. You can also tell it to just skip them.
+- **Scan Mode** Dry run mode that scans all uncategorized files and lists them in a text file, helping you define sorting rules before performing any move or copy operations.
 - **Cross-platform C++17** that builds and runs on macOS, Linux, and Windows.
 
 ## Default Folder Structure
@@ -49,6 +50,7 @@ ekatra <source_A> <source_B> <destination> [options]
 | `--skip-duplicates`  |           | Don't rename duplicates; just skip them.              | `false` |
 | `--include-hidden`   |           | Includes hidden files (dotfiles) in the merge.        | `false` |
 | `--rules <file>`     |           | Path to a custom text file for regex sorting rules.   |         |
+| `--scan <file>`      |           | Perform a 'dry run' to find all uncategorized files and list them in the specified file.                          
 | `--verbose`          | `-v`      | Shows every file being processed.                     | `false` |
 | `--help`             |           | Shows the help message.                               |         |
 
@@ -67,6 +69,24 @@ ekatra <source_A> <source_B> <destination> [options]
 ```bash
 ./ekatra ~/AllMyDocs ~/WorkDocs ~/Sorted --rules ./my_rules.txt
 ```
+
+### A Better Workflow: Using Scan Mode
+For large or complex merges, you can use the scan mode for a safer, more controlled workflow:
+
+1.  **Scan for Uncategorized Files:**
+    Run Ekatra with the `--scan` flag to generate a list of all files that don't match your current rules. No files will be moved.
+    ```bash
+    ./ekatra ~/FolderA ~/FolderB ~/Destination --scan ./uncategorized.txt
+    ```
+
+2.  **Create Your Rules:**
+    Open the generated `uncategorized.txt` file. Use this list to create a powerful `my_rules.txt` file (see "Advanced Sorting with Regex" below).
+
+3.  **Run the Merge:**
+    Now, run Ekatra again, this time providing your new rules file. It will process all files cleanly without needing to prompt you.
+    ```bash
+    ./ekatra ~/FolderA ~/FolderB ~/Destination --rules ./my_rules.txt
+  
 
 ## Advanced Sorting with Regex
 You can extend the default sorting logic with regular expressions in two ways:

@@ -38,6 +38,13 @@ int main(int argc, char *argv[]) {
   program.add_argument("--rules")
       .help("Path to a text file containing custom regex sorting rules.")
       .default_value(std::string(""));
+
+  program.add_argument("--scan")
+      .help("Perform a dry run. Scans for uncategorized files and writes their "
+            "paths to the specified output file. No files will be moved or "
+            "copied.")
+      .default_value(std::string(""));
+
   try {
     program.parse_args(argc, argv);
   } catch (const std::runtime_error &err) {
@@ -53,6 +60,7 @@ int main(int argc, char *argv[]) {
   options.skipDuplicates = program.get<bool>("--skip-duplicates");
   options.includeHidden = program.get<bool>("--include-hidden");
   options.rulesFile = program.get<std::string>("--rules");
+  options.scanFile = program.get<std::string>("--scan");
 
   if (program.get<std::string>("--mode") == "move") {
     options.operation = MergeManager::Operation::Move;
@@ -65,6 +73,14 @@ int main(int argc, char *argv[]) {
   }
 
   MergeManager manager;
+
+  if (!options.scanFile.empty()) {
+    std::cout
+        << "Running in Scan-Only mode. Uncategorized files will be written to: "
+        << options.scanFile << std::endl;
+    manager.scanOnly(options);
+    return 0;
+  }
   manager.process(options);
 
   return 0;

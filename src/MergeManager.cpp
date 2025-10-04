@@ -54,6 +54,55 @@ const std::map<std::string, fs::path> categoryMap = {
     {".dmg", "Applications"},
     {".app", "Applications"}};
 
+void MergeManager::scanOnly(const ProcessOptions &options) {
+  loadCustomRules(options.rulesFile);
+
+  if (!fs::exists(options.sourceA) || !fs::exists(options.sourceB)) {
+    std::cerr << "Error: One or both source folders do not exist." << std::endl;
+    return;
+  }
+
+  std::cout << "Scanning for all files..." << std::endl;
+  std::vector<fs::path> allFiles;
+  scanDirectory(options.sourceA, allFiles, options.includeHidden);
+  scanDirectory(options.sourceB, allFiles, options.includeHidden);
+  std::cout << "Found " << allFiles.size()
+            << " files. Identifying uncategorized files..." << std::endl;
+
+  std::vector<fs::path> uncategorizedFiles;
+  for (const auto &filePath : allFiles) {
+    fs::path targetDir = getDestinationForFile(filePath, options.destination);
+    if (targetDir.empty()) {
+      uncategorizedFiles.push_back(filePath);
+    }
+  }
+
+  if (uncategorizedFiles.empty()) {
+    std::cout << "Scan complete. All files are covered by existing rules."
+              << std::endl;
+    return;
+  }
+
+  std::cout << "Found " << uncategorizedFiles.size()
+            << " uncategorized files. Writing paths to " << options.scanFile
+            << "..." << std::endl;
+
+  std::ofstream outFile(options.scanFile);
+  if (!outFile.is_open()) {
+    std::cerr << "Error: Could not open output file for writing: "
+              << options.scanFile << std::endl;
+    return;
+  }
+
+  for (const auto &path : uncategorizedFiles) {
+    outFile << path.string() << "\n";
+  }
+  outFile.close();
+
+  std::cout << "Scan complete. You can now use the generated file '"
+            << options.scanFile << "' to create custom rules." << std::endl;
+}
+
 void MergeManager::loadCustomRules(const fs::path &rulesFilePath) {
   if (rulesFilePath.empty() || !fs::exists(rulesFilePath)) {
     return;
