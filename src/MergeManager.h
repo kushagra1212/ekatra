@@ -17,6 +17,7 @@ struct ProcessOptions {
   bool verbose = false;
   bool skipDuplicates = false;
   bool includeHidden = false;
+  bool noSort = false;
   std::string rulesFile;
   std::string scanFile;
 };

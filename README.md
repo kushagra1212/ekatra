@@ -6,6 +6,7 @@ Ekatra is a C++ tool that merges two folders into a single, clean directory, sor
 ## Features
 - **Sorts files into default categories** (Media/Images, Documents/Text, Archives, etc.).
 - **Supports custom sorting** with a regex rules file for more control.
+- **Simple Merging**: A `--no-sort` flag to just combine folders without categorization, skipping any duplicates.
 - **Ignores hidden files** (dotfiles like `.DS_Store`) by default to avoid clutter, with an option to include them.
 - If it finds a file type it doesn't recognize, it **prompts you to create a new rule** for it—this can be a simple folder for that extension or a new regex for similar filenames.
 - **Renames duplicate files** by default (`file_1.txt`) to prevent overwriting. You can also tell it to just skip them.
@@ -47,6 +48,7 @@ ekatra <source_A> <source_B> <destination> [options]
 | Option             | Shorthand | Description                                           | Default |
 |--------------------|-----------|-------------------------------------------------------|---------|
 | `--mode <mode>`      |           | Use `copy` (safe) or `move` (fast).                   | `copy`  |
+| `--no-sort`          |           | Merges files without sorting; skips duplicates.       | `false` |
 | `--skip-duplicates`  |           | Don't rename duplicates; just skip them.              | `false` |
 | `--include-hidden`   |           | Includes hidden files (dotfiles) in the merge.        | `false` |
 | `--rules <file>`     |           | Path to a custom text file for regex sorting rules.   |         |

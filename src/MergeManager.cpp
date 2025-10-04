@@ -208,22 +208,45 @@ void MergeManager::process(const ProcessOptions &options) {
   try {
     fs::create_directories(options.destination);
     for (const auto &filePath : allFiles) {
-      fs::path targetDir = getDestinationForFile(filePath, options.destination);
-      if (targetDir.empty()) {
-        targetDir = reporter.promptForUnknownFile(filePath, options.destination,
-                                                  m_userRules, m_customRules);
-      }
-      fs::create_directories(targetDir);
 
+      fs::path targetDir;
       fs::path destFile;
-      if (options.skipDuplicates) {
-        destFile = targetDir / filePath.filename();
+
+      if (options.noSort) {
+        fs::path sourceRoot;
+
+        if (filePath.string().find(options.sourceA.string()) == 0) {
+          sourceRoot = options.sourceA;
+        } else {
+          sourceRoot = options.sourceB;
+        }
+
+        fs::path relativePath = fs::relative(filePath, sourceRoot);
+        destFile = options.destination / relativePath;
+
+        fs::create_directories(destFile.parent_path());
+
         if (fs::exists(destFile)) {
           reporter.reportFileProcessed(filePath);
           continue;
         }
       } else {
-        destFile = getUniquePath(targetDir / filePath.filename());
+        targetDir = getDestinationForFile(filePath, options.destination);
+        if (targetDir.empty()) {
+          targetDir = reporter.promptForUnknownFile(
+              filePath, options.destination, m_userRules, m_customRules);
+        }
+        fs::create_directories(targetDir);
+
+        if (options.skipDuplicates) {
+          destFile = targetDir / filePath.filename();
+          if (fs::exists(destFile)) {
+            reporter.reportFileProcessed(filePath);
+            continue;
+          }
+        } else {
+          destFile = getUniquePath(targetDir / filePath.filename());
+        }
       }
 
       std::error_code ec;

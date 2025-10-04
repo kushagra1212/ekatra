@@ -480,3 +480,33 @@ TEST_F(MergeManagerTest, ScanOnly_HandlesNoUncategorizedFiles) {
   // Check that no files were actually moved or copied.
   ASSERT_TRUE(fs::is_empty(options.destination));
 }
+
+TEST_F(MergeManagerTest, Process_SimpleMergeNoSort) {
+  // 1. SETUP: Create some files, including a duplicate.
+  createFile(options.sourceA / "file1.txt");
+  createFile(options.sourceA / "duplicate.log");
+  createFile(options.sourceA / "docs/document.pdf");
+  createFile(options.sourceA / "media/picture1.png");
+  createFile(options.sourceA / "media/5.png");
+  createFile(options.sourceB / "file2.jpg");
+  createFile(options.sourceB / "duplicate.log");
+  createFile(options.sourceB / "media/picture2.png");
+  createFile(options.sourceB / "media/5.png");
+
+  // 2. ACTION: Run the process with the no-sort flag enabled.
+  options.noSort = true;
+  manager.process(options);
+
+  // 3. VERIFY:
+  // Check that the unique files were copied directly into the destination.
+  ASSERT_TRUE(fs::exists(options.destination / "file1.txt"));
+  ASSERT_TRUE(fs::exists(options.destination / "file2.jpg"));
+  ASSERT_TRUE(fs::exists(options.destination / "docs/document.pdf"));
+  ASSERT_TRUE(fs::exists(options.destination / "media/picture1.png"));
+  ASSERT_TRUE(fs::exists(options.destination / "media/picture2.png"));
+
+  // Check that the duplicate file exists (only one copy).
+  ASSERT_TRUE(fs::exists(options.destination / "duplicate.log"));
+  ASSERT_FALSE(fs::exists(options.destination / "duplicate_1.log"));
+  ASSERT_FALSE(fs::exists(options.destination / "media/5_1.png"));
+}

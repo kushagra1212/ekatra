@@ -29,6 +29,11 @@ int main(int argc, char *argv[]) {
       .default_value(false)
       .implicit_value(true);
 
+  program.add_argument("--no-sort")
+      .help("Merge folders without sorting. This mode always skips duplicates.")
+      .default_value(false)
+      .implicit_value(true);
+
   program.add_argument("--include-hidden")
       .help("Include hidden files (files starting with a dot). Ignored by "
             "default.")
@@ -56,6 +61,7 @@ int main(int argc, char *argv[]) {
   options.sourceA = program.get<std::string>("source_a");
   options.sourceB = program.get<std::string>("source_b");
   options.destination = program.get<std::string>("destination");
+  options.noSort = program.get<bool>("--no-sort");
   options.verbose = program.get<bool>("--verbose");
   options.skipDuplicates = program.get<bool>("--skip-duplicates");
   options.includeHidden = program.get<bool>("--include-hidden");
